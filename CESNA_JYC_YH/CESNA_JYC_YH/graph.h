@@ -12,11 +12,10 @@
 #include <stdio.h>
 #include <vector>
 #ifdef __GNUC__
-#include <ext/hash_map>
-using namespace __gnu_cxx;
+#include <unordered_map>
 using namespace std;
 #else
-#include <hash_map>
+#include <unordered_map>
 using namespace std;
 #endif
 
@@ -38,7 +37,7 @@ public:
         int getId() const   { return nodeId; }
         int getDeg() const  { return (int)neighborNodeIds.size(); }
     };
-    typedef hash_map<int, node>::iterator nodeI;
+    typedef unordered_map<int, node>::iterator nodeI;
     
     class edge {
         int edgeId;
@@ -50,9 +49,9 @@ public:
         int getSrcId()const { return srcNodeId; }
         int getDesId()const { return desNodeId; }
     };
-    typedef hash_map<int, edge>::iterator edgeI;
+    typedef unordered_map<int, edge>::iterator edgeI;
 private:
-    hash_map< int, node >   nodeIdMap;
+    unordered_map< int, node >   nodeIdMap;
     
 public:
     void addNode(node n)    { nodeIdMap[n.getId()] = n; }
@@ -63,7 +62,7 @@ public:
     nodeI getNodeItEnd()    { return nodeIdMap.end(); }
     
 private:
-    hash_map< int, edge >   edgeIdMap;
+    unordered_map< int, edge >   edgeIdMap;
 public:
     void addEdge(edge e)    { edgeIdMap[e.getId()] = e; }
     edge* getEdge(int eid)  { return &edgeIdMap[eid]; }
@@ -82,8 +81,8 @@ class graphAdapter {
 };
 
 class dblp_article : graphAdapter{
-    string path;
-    dblp_article(string path):path(path){}
+//    string path;
+//    dblp_article(string path):path(path){}
     ugraph load(){
         return ugraph();
     }
