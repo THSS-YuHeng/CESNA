@@ -9,6 +9,7 @@
 #include <iostream>
 #include "debug.h"
 #include "graph.h"
+#include "cesna.h"
 
 int main(int argc, const char * argv[]) {
     // insert code here...
@@ -24,12 +25,13 @@ int main(int argc, const char * argv[]) {
     STAMP("test stamp", {});
 
     ugraph ug;
-    ug.addNode(ugraph::node());
-    std::cout << ug.isNode(0) << std::endl;
-    ugraph::node* un = ug.getNode(0); un->addNeighbor(1);
-    std::cout << un->getDeg() << std::endl;
-    ugraph::node* un2 = ug.getNode(0); un2->addNeighbor(2);
-    un->addNeighbor(3);
-    std::cout << un->getDeg() << std::endl;
+    for (int i = 0; i < 5; i++) {
+        ugraph::node n(i);
+        ug.addNode(n);
+    }
+    
+    cesna c(&ug);
+    c.calculate();
+    
     return 0;
 }
