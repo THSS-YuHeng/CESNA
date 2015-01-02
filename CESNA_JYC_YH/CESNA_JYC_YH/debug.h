@@ -34,6 +34,7 @@ std::cout << "DONE " << time_span.count() << " seconds." << std::endl;\
 #define SETUPSTAMP \
 using namespace std::chrono;\
 auto t1 = Clock::now();
+#define GETSTAMP ((duration_cast<duration<double>>(Clock::now() - t1)).count())
 #define STAMP(msg, code) {\
 using namespace std::chrono;\
 {code}\
@@ -43,6 +44,7 @@ std::cout << msg << " " << time_span.count() << " seconds." << std::endl;\
 }
 #else
 #define STAMP(msg, code) code
+#define GETSTAMP
 #define SETUPSTAMP {}
 #endif //USE_TIMESTAMP
 

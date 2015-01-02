@@ -33,9 +33,12 @@ public:
         vector<int>         neighborNodeIds; // node ids
         vector<int>         attrIds;
     public:
+        node(): nodeId(-1) {}
+        node(int id): nodeId(id) {}
         void addNeighbor( int neighNodeId ) { neighborNodeIds.push_back(neighNodeId); }
         int getId() const   { return nodeId; }
         int getDeg() const  { return (int)neighborNodeIds.size(); }
+        vector<int> getNeighbors() const { return neighborNodeIds; }
     };
     typedef unordered_map<int, node>::iterator nodeI;
     

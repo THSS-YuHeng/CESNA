@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include "graph.h"
+#include "debug.h"
 #include <random>
 #include <vector>
 #include <set>
