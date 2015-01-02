@@ -44,6 +44,9 @@ class cesna {
     std::mt19937 _mt; // random number generator
     int n_communities; // number of communities
     int n_attributes; // number of attributes, K
+    
+    double MinValW;
+    double MaxValW;
 public:
     // lambda, regularization hyperparameter, in EQ4,Page4
     GIVEN float lambda;

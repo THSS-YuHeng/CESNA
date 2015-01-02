@@ -8,7 +8,7 @@
 
 #include "cesna.h"
 #include <algorithm>
-
+#define NegWgt (1.0)
 int cesna::estimateCommuNumber() {
     return 10;
 }
@@ -29,7 +29,19 @@ void cesna::calculate() {
     // then update W while fixing community memberships F
     // 从而将非凸的优化问题转化为凸优化
     // --------------------------------------------------------
-    
+    // init F, W
+    for (int u = 0; u < _g->graphNodeMapSize(); u++) {
+        F.push_back(vector<float>());
+        for (int c = 0; c < n_communities; c++) {
+            F[u].push_back(0.0);
+        }
+    }
+    for (int k = 0; k < n_attributes; k++) {
+        W.push_back(vector<float>());
+        for (int c = 0; c < n_communities; c++) {
+            W[c].push_back(0.0);
+        }
+    }
     // estimate
     if ( n_communities == -1 ) {
         n_communities = estimateCommuNumber();
@@ -50,10 +62,76 @@ void cesna::calculate() {
             // grad for node u
             ugraph::node* n = _g->getNode(uid);
             int deg = n->getDeg();
-            vector<float> u_gradv(n_communities);
-            // prediction 函数存疑, 1/1-pnocom是什么意思
+            vector<float> gradV(n_communities);
+            vector<float> gradU(n_communities);
+            vector<float> predV(deg);
+            float val = 0.0;
+            // 求gradv
+            for (int ni = 0; ni < deg; ni++) {
+                int nid = n->getNeighbors()[ni];
+                // prediction 函数存疑, 1/1-pnocom是什么意思, pnocom = 1/N
+                predV[ni] = 0.0;//TODO Prediction(uid, nid);
+            }
+            for (int c = 0; c < n_communities; c++) {
+                double val = 0.0;
+                for (int ni = 0; ni < deg; ni++) {
+                    int nid = n->getNeighbors()[ni];
+                    // prediction 函数存疑, 1/1-pnocom是什么意思, pnocom = 1/N
+                    // NegWgt = 1.0?
+                    val += predV[ni] * F[nid][c] / (1.0 - predV[ni]) + NegWgt * F[nid][c];
+                }
+                gradV[c] = val;
+            }
+            // L1 L2 regularization
+            // add attribute part
+            vector<float> attrV(n_attributes);
+            for (int k = 0; k < n_attributes; k++) {
+                attrV[k] = 0.0;//TODO PredictAttrK(F[UID], W[k]);
+            }
+            for (int c = 0; c < gradV.size(); c++) {
+                for (int k = 0; k < n_attributes; k++) {
+                    gradV[c] += 1.0 * (X[uid][k] - attrV[k]) * W[c][k];
+                }
+            }
+            for (int c = 0; c < gradV.size(); c++) {
+                if (F[uid][c] == 0.0 && gradV[c] < 0.0) { continue; }
+                if (fabs(gradV[c]) < 0.0001) { continue; }
+                gradU[c] = gradV[c];
+            }
+            for (int c = 0; c < gradU.size(); c++) {
+                if (gradU[c] >= 10) { gradU[c] = 10; }
+                if (gradU[c] <= -10) { gradU[c] = -10; }
+            }
+            // norm2 GradV < 1e-4
+            
+            // step size
+            float LearnRate = 0.0;//TODO GetStepSizeByLineSearch
+            // 更新Fuc
+            for (int ci = 0; ci < gradV.size(); ci++) {
+                double Change = LearnRate * gradV[ci];
+                double NewFuc = F[uid][ci] + Change;
+                if (NewFuc <= 0.0) {
+                    F[uid][ci] = 0.0;
+                } else {
+                    F[uid][ci] = NewFuc;
+                }
+            }
         }
         for (int k = 0; k < n_attributes; k++) {
+            vector<float> gradWV(n_communities);
+            // calc W
+            // grad W
+            // TODO GradientForWK
+            // TODO Norm2 gradWV
+            // step size
+            double learnRate = 0.0; // TODO GetStepSizeByLineSearchForWK
+            // 更新 Wkc
+            if (learnRate == 0.0) { continue; }
+            for (int c = 0; c < gradWV.size(); c++){
+                W[k][c] += learnRate * gradWV[c];
+                if (W[k][c] < MinValW) { W[k][c] = MinValW; }
+                if (W[k][c] > MaxValW) { W[k][c] = MaxValW; }
+            }
         }
         std::cout << "iter: " << iter << " " << GETSTAMP << std::endl;
         iter++;
