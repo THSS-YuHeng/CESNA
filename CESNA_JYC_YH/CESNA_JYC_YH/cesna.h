@@ -69,6 +69,60 @@ public:
         }
         return r;
     }
+
+	double inline PredictAttrK(vector<float>& FU, vector<float>& WK) {
+		double DP = 0.0;
+		for (vector<float> FI = FU.BegI(); FI < FU.EndI(); FI++) {
+			DP += FI.GetDat() * WK[FI.GetKey()];
+		}
+		DP += WK.Last();
+		return 1.0 / ( 1.0 + exp(-DP));;
+	}
+
+	template <typename T>
+	int Sign(const T& Val) {
+		return Val<0?-1:(Val>0?1:0);
+	}
+
+	double inline Norm2(const TIntFltH& UV) {
+		double N = 0.0;
+		for (TIntFltH::TIter HI = UV.BegI(); HI < UV.EndI(); HI++) {
+			N += HI.GetDat() * HI.GetDat();
+		}
+		return N;
+	}
+
+	double inline GetCom(const int& NID, const int& CID) {
+		if (F[NID].IsKey(CID)) {
+			return F[NID].GetDat(CID);
+		} else {
+			return 0.0;
+		}
+	}
+
+	double inline GetAttr(const int& NID, const int& K) {
+		if (X[NID].IsKey(K)) {
+			return 1.0;
+		} else {
+			return 0.0;
+		}
+	}
+
+	void  GradientForWK(vector<float>& GradV, const int K) {
+		//GradV.Gen(NumComs + 1);
+		for (int u = 0; u < F.size; u++) {
+			//if (HOKIDSV[u].IsKey(K)) { continue; }
+			double Pred = PredictAttrK(F[u], W[K]);					//Q(u,k) get in 
+			for (TIntFltH::TIter CI = F[u].BegI(); CI < F[u].EndI(); CI++) {
+				GradV[CI.GetKey()] += (GetAttr(u, K) - Pred) * GetCom(u, CI.GetKey());
+			}
+			GradV[n_communities] += (GetAttr(u, K) - Pred);
+		}
+    
+		for (int c = 0; c < GradV.Len() - 1; c++) {
+			GradV[c] -= LassoCoef * Sign(W[K][c]);
+		}	  
+	}
 };
 
 #endif /* defined(__cesna__cesna__) */

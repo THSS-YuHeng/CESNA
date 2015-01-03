@@ -30,6 +30,7 @@ void cesna::calculate() {
     // 从而将非凸的优化问题转化为凸优化
     // --------------------------------------------------------
     // estimate
+	n_communities = -1;
     if ( n_communities == -1 ) {
         n_communities = estimateCommuNumber();
     }
@@ -140,7 +141,9 @@ void cesna::calculate() {
             // calc W
             // grad W
             // TODO GradientForWK
+			GradientForWK(gradWV, k);
             // TODO Norm2 gradWV
+			if (Norm2(gradWV) < 1e-4) { continue; }
             // step size
             double learnRate = 0.0; // TODO GetStepSizeByLineSearchForWK
             // 更新 Wkc
