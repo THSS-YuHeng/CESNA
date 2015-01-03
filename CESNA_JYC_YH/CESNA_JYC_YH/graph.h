@@ -39,6 +39,7 @@ public:
         int getId() const   { return nodeId; }
         int getDeg() const  { return (int)neighborNodeIds.size(); }
         vector<int> getNeighbors() const { return neighborNodeIds; }
+        bool isNeighbor(int vid) { return std::find(neighborNodeIds.begin(),                                                    neighborNodeIds.end(), vid) == neighborNodeIds.end(); }
     };
     typedef unordered_map<int, node>::iterator nodeI;
     

@@ -36,9 +36,13 @@ class cesna {
     // IV, par 1
     // F_uc, communities memberships, F[node_id][community_id] = float, N*C
     TOINFER vector<vector<float>> F;
+    // helper vector, save the sum of each community
+    vector<float> SumFV;
     // IV, par 1
     // W, logistic weight parameters arg, W[k][community_id] = float, K*(C+1)
     TOINFER vector<vector<float>> W;
+    
+    // P,Q 中间变量
     
     std::random_device _rd;
     std::mt19937 _mt; // random number generator
@@ -55,6 +59,16 @@ public:
     int estimateCommuNumber(); // estimate C number
     void setCommunityNumber(int c);
     void calculate();
+    
+    double dot(vector<float> v1, vector<float> v2) {
+        double r = 0.0;
+        if( v1.size() == v2.size() ) {
+            for (int i = 0; i < v1.size(); i++) {
+                r += v1[i]*v2[i];
+            }
+        }
+        return r;
+    }
 };
 
 #endif /* defined(__cesna__cesna__) */
