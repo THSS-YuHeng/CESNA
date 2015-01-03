@@ -30,8 +30,9 @@ int main(int argc, const char * argv[]) {
         ug.addNode(n);
     }
     
+	double StepAlpha = 0.1, StepBeta = 0.1;
     cesna c(&ug);
-    c.calculate();
+    c.calculate(StepAlpha, StepBeta);
     
     return 0;
 }
