@@ -53,6 +53,8 @@ class cesna {
     float LassoCoef; // to be set
     double MinValW;
     double MaxValW;
+    double MinVal;
+    double MaxVal;
 public:
     // lambda, regularization hyperparameter, in EQ4,Page4
     GIVEN float lambda;
@@ -60,6 +62,9 @@ public:
     cesna(ugraph* g, unordered_map<int,vector<int>> X): _g(g), X(X),_mt(_rd()) {
         for (ugraph::nodeI ni = g->getNodeItBegin(); ni != g->getNodeItEnd(); ni++) {
             nids.push_back(ni->first);
+            F[ni->first] = vector<float>();
+            //D({ std::cout << ni->first << std::endl; })
+            n_attributes = (int)X[ni->first].size();
         }
         D( {
          std::cout << "GRAPH HAVE " << nids.size() << " NODES" << std::endl;
@@ -106,11 +111,11 @@ public:
 		//GradV.Gen(NumComs + 1);
 		for (int u = 0; u < F.size(); u++) {
 			//if (HOKIDSV[u].IsKey(K)) { continue; }
-			double Pred = PredictAttrK(F[u], W[K]);					//Q(u,k) get in 
+			double Pred = PredictAttrK(F[nids[u]], W[K]);					//Q(u,k) get in
             for (int c = 0; c < n_communities; c++) {
-				GradV[c] += (X[u][K] - Pred) * F[u][c];
+				GradV[c] += (X[nids[u]][K] - Pred) * F[nids[u]][c];
 			}
-			GradV[n_communities] += (X[u][K] - Pred);
+			GradV[n_communities] += (X[nids[u]][K] - Pred);
 		}
     
 		for (int c = 0; c < GradV.size() - 1; c++) {
@@ -119,9 +124,36 @@ public:
 	}
 
 	double inline GetAttr(const int& NID, const int& K) {
-        return X[nids[NID]][K];
+        return X[NID][K];
 	}
 
+    double LikelihoodForRow(const int UID, vector<float>& FU) {
+        double L = 0.0;
+        
+        ugraph::node* NI = _g->getNode(UID);
+        for (int e = 0; e < NI->getDeg(); e++) {
+            int v = NI->getNeighbors()[e];
+            if (v == UID) { continue; }
+            L += log (1.0 - exp(-dot(FU, F[v])) + 1.0 * dot(FU, F[v]) );
+        }
+        for (int HI = 0; HI < FU.size(); HI++) {
+            L -= 1.0 * (SumFV[HI] - F[UID][HI] * FU[HI]);
+        }
+        //add regularization
+//        if (RegCoef > 0.0) { //L1
+//            L -= RegCoef * Sum(FU);
+//        }
+//        if (RegCoef < 0.0) { //L2
+//            L += RegCoef * Norm2(FU);
+//        }
+        L *= (1.0 - 0.5);
+        // add attribute part
+        for (int k = 0; k < n_attributes; k++) {
+            L += 0.5 * LikelihoodAttrKForRow(UID, k, FU, W[k]);
+        }
+        return L;
+    }
+    
 	double LikelihoodAttrKForRow(const int UID, int K, vector<float>& FU, vector<float>& WK) {
 		double Prob = PredictAttrK(FU, WK);
 		double L = 0.0;
@@ -137,7 +169,7 @@ public:
 		double L = 0.0;
 		for (int u = 0; u < F.size(); u++) {
 			//if (HOKIDSV[u].IsKey(K)) { continue; }
-			L += LikelihoodAttrKForRow(u, K, F[u], WK);
+			L += LikelihoodAttrKForRow(nids[u], K, F[nids[u]], WK);
 		}
 		for (int c = 0; c < WK.size() - 1; c++) {
 			L -= LassoCoef * fabs(WK[c]);
@@ -145,6 +177,31 @@ public:
 		return L;
 	}
 
+    double GetStepSizeByLineSearch(const int UID, vector<float>& DeltaV, vector<float>& GradV, const double& Alpha, const double& Beta, const int MaxIter = 10) {
+        double StepSize = 1.0;
+        double InitLikelihood = LikelihoodForRow(UID, F[UID]);
+        vector<float> NewVarV(DeltaV.size());
+        for(int iter = 0; iter < MaxIter; iter++) {
+            for (int i = 0; i < DeltaV.size(); i++){
+                int CID = i;
+                double NewVal = F[UID][CID] + StepSize * DeltaV[CID];
+                if (NewVal < MinVal) { NewVal = MinVal; }
+                if (NewVal > MaxVal) { NewVal = MaxVal; }
+                NewVarV[i] = NewVal;
+            }
+            if (LikelihoodForRow(UID, NewVarV) < InitLikelihood + Alpha * StepSize * dot(GradV, DeltaV)) {
+                StepSize *= Beta;
+            } else {
+                break;
+            }
+            if (iter == MaxIter - 1) { 
+                StepSize = 0.0;
+                break;
+            }
+        }
+        return StepSize;
+    }
+    
 	double GetStepSizeByLineSearchForWK(int K, vector<float>& DeltaV, vector<float>& GradV, double& Alpha, double& Beta, int MaxIter = 10) {
 		double StepSize = 1.0;
 		double InitLikelihood = LikelihoodForWK(K, W[K]);
