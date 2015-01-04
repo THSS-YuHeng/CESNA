@@ -32,10 +32,10 @@ class cesna {
     OBSERVED ugraph* _g;
     // X_uk, node attributes, X[node_id][attr_id] = 0 or 1
     // indicate if the node has the attr
-    OBSERVED vector<vector<float>> X;
+    OBSERVED unordered_map<int,vector<int>> X;
     // IV, par 1
     // F_uc, communities memberships, F[node_id][community_id] = float, N*C
-    TOINFER vector<vector<float>> F;
+    TOINFER unordered_map<int,vector<float>> F;
     // helper vector, save the sum of each community
     vector<float> SumFV;
     // IV, par 1
@@ -43,6 +43,8 @@ class cesna {
     TOINFER vector<vector<float>> W;
     
     // P,Q 中间变量
+    // Node ids
+    vector<int> nids;
     
     std::random_device _rd;
     std::mt19937 _mt; // random number generator
@@ -55,7 +57,15 @@ public:
     // lambda, regularization hyperparameter, in EQ4,Page4
     GIVEN float lambda;
     
-    cesna(ugraph* g): _g(g),_mt(_rd()) {}
+    cesna(ugraph* g, unordered_map<int,vector<int>> X): _g(g), X(X),_mt(_rd()) {
+        for (ugraph::nodeI ni = g->getNodeItBegin(); ni != g->getNodeItEnd(); ni++) {
+            nids.push_back(ni->first);
+        }
+        D( {
+         std::cout << "GRAPH HAVE " << nids.size() << " NODES" << std::endl;
+        } )
+    }
+    
     int estimateCommuNumber(); // estimate C number
     void setCommunityNumber(int c);
     void calculate();

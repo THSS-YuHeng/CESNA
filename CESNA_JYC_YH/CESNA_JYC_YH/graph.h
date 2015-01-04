@@ -85,8 +85,6 @@ class graphAdapter {
 };
 
 class dblp_article : graphAdapter{
-//    string path;
-//    dblp_article(string path):path(path){}
     ugraph load(){
         return ugraph();
     }

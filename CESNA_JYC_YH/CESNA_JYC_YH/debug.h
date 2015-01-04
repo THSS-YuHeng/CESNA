@@ -13,6 +13,13 @@ typedef std::chrono::high_resolution_clock Clock;
 
 
 #define DEBUG 1
+#if DEBUG
+#define D(msg) {\
+msg\
+}
+#else
+#define D(msg)
+#endif
 #define USE_PROFILING 1
 #define USE_TIMESTAMP 1
 #if USE_PROFILING

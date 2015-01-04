@@ -40,21 +40,22 @@ void cesna::calculate() {
     }
     // init F, W
     for (int u = 0; u < _g->graphNodeMapSize(); u++) {
-        F.push_back(vector<float>());
+        F[nids[u]] = vector<float>();
         for (int c = 0; c < n_communities; c++) {
-            F[u].push_back(0.0);
+            F[nids[u]].push_back(0.0);
         }
     }
     for (int k = 0; k < n_attributes; k++) {
         W.push_back(vector<float>());
         for (int c = 0; c < n_communities; c++) {
-            W[c].push_back(0.0);
+            W[k].push_back(0.0);
         }
+        W[k].push_back(1.0); // c+1 element
     }
     // grad ascent
     SETUPSTAMP
     int iter = 0;
-    int maxiter = 5; // to be set
+    int maxiter = 100; // to be set
     vector<int> shuffleU; // for shuffle
     for (int i = 0; i < _g->graphNodeMapSize(); i++) {
         shuffleU.push_back(i);
@@ -94,6 +95,7 @@ void cesna::calculate() {
                 // 计算v not in Nei的部分
                 val -= NegWgt * (SumFV[c] - F[uid][c]);
                 gradV[c] = val;
+                // update SumFV
                 SumFV[c] = 0.0;
                 for (int sumi = 0; sumi < _g->graphNodeMapSize(); sumi++) {
                     SumFV[c] += F[sumi][c];
