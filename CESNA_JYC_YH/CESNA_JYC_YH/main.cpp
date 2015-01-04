@@ -94,7 +94,11 @@ int main(int argc, const char * argv[]) {
 //    std::cout << eid << " " << citen << std::endl;
 
     unordered_map<int,vector<int>> X;
+#ifdef __APPLE__
     ifstream ifattrs("/Users/jin-yc10/Development/data_homework/Hw4/618506165_6_Project4/cora/cora.content.txt");
+#else
+    ifstream ifattrs("/Users/jin-yc10/Development/data_homework/Hw4/618506165_6_Project4/cora/cora.content.txt");
+#endif
     if (! ifattrs.is_open())
     { cout << "Error opening file"; exit (1); }
     int attrid;
