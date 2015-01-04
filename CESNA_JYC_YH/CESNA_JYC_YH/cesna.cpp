@@ -7,6 +7,7 @@
 //
 
 #include "cesna.h"
+#include <math.h>
 #include <algorithm> // for std::shuffle
 #define NegWgt (1.0)
 int cesna::estimateCommuNumber() {
@@ -164,4 +165,24 @@ void cesna::calculate(double StepAlpha, double StepBeta) {
     
     // get com
     // dump com
+	double fazhi = sqrt(0.0 - log(1.0 - 1.0 / n_communities));
+	std::cout << "Comunity Number: " << n_communities << std::endl;
+	std::cout << "Comunity fazhi: " << fazhi << std::endl;
+	for (int i = 0; i < n_communities; i++)
+	{
+		std::cout << "Comunity " << i << ": ";
+		int counti = 0;
+		for (int j = 0; j < 1000; j++)
+		{
+			if (counti == 10)
+			{
+				std::cout<< " " << std::endl;
+			}
+			if (F[nids[j]][i] > fazhi)
+			{
+				std::cout<< nids[j] <<"-";
+				counti++;
+			}
+		}
+	}
 }
