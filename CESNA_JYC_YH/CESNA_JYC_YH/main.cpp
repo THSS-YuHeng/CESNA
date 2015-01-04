@@ -118,7 +118,7 @@ int main(int argc, const char * argv[]) {
 //        std::cout << attrid << " " << cat << " " << X[attrid].size() << endl;
     }
     
-	double StepAlpha = 0.1, StepBeta = 0.1;
+	double StepAlpha = 0.05, StepBeta = 0.3;
     cesna c(&ug, X);
     c.calculate(StepAlpha, StepBeta);
     
