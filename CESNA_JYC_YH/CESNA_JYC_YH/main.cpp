@@ -92,7 +92,7 @@ int main(int argc, const char * argv[]) {
     }
 //    std::cout << ug.graphEdgeMapSize() << std::endl;
 //    std::cout << eid << " " << citen << std::endl;
-    
+
     unordered_map<int,vector<int>> X;
     ifstream ifattrs("/Users/jin-yc10/Development/data_homework/Hw4/618506165_6_Project4/cora/cora.content.txt");
     if (! ifattrs.is_open())
@@ -109,8 +109,10 @@ int main(int argc, const char * argv[]) {
         ifattrs >> cat;
 //        std::cout << attrid << " " << cat << " " << X[attrid].size() << endl;
     }
+    
+	double StepAlpha = 0.1, StepBeta = 0.1;
     cesna c(&ug, X);
-//  c.calculate();
+    c.calculate(StepAlpha, StepBeta);
     
     return 0;
 }

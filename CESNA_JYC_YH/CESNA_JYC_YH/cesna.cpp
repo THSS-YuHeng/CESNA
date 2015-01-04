@@ -13,7 +13,7 @@ int cesna::estimateCommuNumber() {
     return 10;
 }
 
-void cesna::calculate() {
+void cesna::calculate(double StepAlpha, double StepBeta) {
     // F_est, W_est = argmax log(P(G,X|F,W)), max likelihood
     // log(P(G,X|F,W)) = l~G + L~X
     // l~G = log(P(G|F)), l~X = log(P(X|F,W))
@@ -148,6 +148,7 @@ void cesna::calculate() {
 			if (Norm2(gradWV) < 1e-4) { continue; }
             // step size
             double learnRate = 0.0; // TODO GetStepSizeByLineSearchForWK
+			learnRate = GetStepSizeByLineSearchForWK(k, gradWV, gradWV, StepAlpha, StepBeta);
             // 更新 Wkc
             if (learnRate == 0.0) { continue; }
             for (int c = 0; c < gradWV.size(); c++){

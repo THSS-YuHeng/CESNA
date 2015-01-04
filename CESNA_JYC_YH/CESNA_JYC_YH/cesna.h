@@ -50,7 +50,7 @@ class cesna {
     std::mt19937 _mt; // random number generator
     int n_communities; // number of communities
     int n_attributes; // number of attributes, K
-    float LassoCoef = 1.0; // to be set
+    float LassoCoef; // to be set
     double MinValW;
     double MaxValW;
 public:
@@ -68,7 +68,7 @@ public:
     
     int estimateCommuNumber(); // estimate C number
     void setCommunityNumber(int c);
-    void calculate();
+    void calculate(double StepAlpha, double StepBeta);
     
     double dot(vector<float> v1, vector<float> v2) {
         double r = 0.0;
@@ -116,6 +116,62 @@ public:
 		for (int c = 0; c < GradV.size() - 1; c++) {
 			GradV[c] -= LassoCoef * Sign(W[K][c]);
 		}	  
+	}
+
+	double inline GetAttr(const int& NID, const int& K) {
+        return X[nids[NID]][K];
+	}
+
+	double LikelihoodAttrKForRow(const int UID, int K, vector<float>& FU, vector<float>& WK) {
+		double Prob = PredictAttrK(FU, WK);
+		double L = 0.0;
+		if (GetAttr(UID, K)) { 
+			L = Prob == 0.0? -100.0: log(Prob);
+		} else {
+			L = Prob == 1.0? -100.0: log(1.0 - Prob);
+		}
+		return L;
+	}
+
+	double LikelihoodForWK(int K, vector<float>& WK) {
+		double L = 0.0;
+		for (int u = 0; u < F.size(); u++) {
+			//if (HOKIDSV[u].IsKey(K)) { continue; }
+			L += LikelihoodAttrKForRow(u, K, F[u], WK);
+		}
+		for (int c = 0; c < WK.size() - 1; c++) {
+			L -= LassoCoef * fabs(WK[c]);
+		} 
+		return L;
+	}
+
+	double GetStepSizeByLineSearchForWK(int K, vector<float>& DeltaV, vector<float>& GradV, double& Alpha, double& Beta, int MaxIter = 10) {
+		double StepSize = 1.0;
+		double InitLikelihood = LikelihoodForWK(K, W[K]);
+		vector<float> NewVarV(DeltaV.size());
+		//IAssert(DeltaV.size() == n_communities + 1);
+		for(int iter = 0; iter < MaxIter; iter++) {
+			for (int c = 0; c < DeltaV.size(); c++) {
+				double NewVal = W[K][c] + StepSize * DeltaV[c];
+				if (NewVal < MinValW) {
+					NewVal = MinValW;
+				}
+				if (NewVal > MaxValW) {
+					NewVal = MaxValW;
+				}
+				NewVarV[c] = NewVal;
+			}
+			if (LikelihoodForWK(K, NewVarV) < InitLikelihood + Alpha * StepSize * dot(GradV, DeltaV)) {
+				StepSize *= Beta;
+			} else {
+				break;
+			}
+			if (iter == MaxIter - 1) { 
+				StepSize = 0.0;
+				break;
+			}
+		}
+		return StepSize;
 	}
 };
 
