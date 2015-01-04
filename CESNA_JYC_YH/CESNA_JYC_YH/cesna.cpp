@@ -10,7 +10,7 @@
 #include <algorithm> // for std::shuffle
 #define NegWgt (1.0)
 int cesna::estimateCommuNumber() {
-    return 10;
+    return 7;
 }
 
 void cesna::calculate(double StepAlpha, double StepBeta) {
@@ -107,7 +107,7 @@ void cesna::calculate(double StepAlpha, double StepBeta) {
                 for (int k = 0; k < n_attributes; k++) {
                     gradV[c] += 1.0 * (X[uid][k]
                                        - attrV[k])
-                    * W[c][k];
+                    * W[k][c];
                 }
             }
             for (int c = 0; c < gradV.size(); c++) {

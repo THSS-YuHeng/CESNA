@@ -32,7 +32,11 @@ int main(int argc, const char * argv[]) {
     std::unordered_map<int, vector<int>> citemap;
     std::vector<int> idv;
     char buffer[2000];
-    ifstream ifs("/Users/jin-yc10/Development/data_homework/Hw4/618506165_6_Project4/cora/cora.cites.txt");
+	#ifdef __APPLE__
+		ifstream ifs("/Users/jin-yc10/Development/data_homework/Hw4/618506165_6_Project4/cora/cora.cites");
+	#else
+		ifstream ifs("C:\\Users\\H\\Desktop\\123\\Project4\\cora\\cora.cites");
+	#endif    
     if (! ifs.is_open())
     { cout << "Error opening file"; exit (1); }
     int citen = 0;
@@ -95,9 +99,9 @@ int main(int argc, const char * argv[]) {
 
     unordered_map<int,vector<int>> X;
 #ifdef __APPLE__
-    ifstream ifattrs("/Users/jin-yc10/Development/data_homework/Hw4/618506165_6_Project4/cora/cora.content.txt");
+    ifstream ifattrs("/Users/jin-yc10/Development/data_homework/Hw4/618506165_6_Project4/cora/cora.content");
 #else
-    ifstream ifattrs("/Users/jin-yc10/Development/data_homework/Hw4/618506165_6_Project4/cora/cora.content.txt");
+    ifstream ifattrs("C:\\Users\\H\\Desktop\\123\\Project4\\cora\\cora.content");
 #endif
     if (! ifattrs.is_open())
     { cout << "Error opening file"; exit (1); }

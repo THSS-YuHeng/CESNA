@@ -1,6 +1,11 @@
 *.zip
+
 *.txt
+
 *.opensdf
+
 *.sdf
 
 CESNA_JYC_YH/Debug
+
+CESNA_JYC_YH/Release

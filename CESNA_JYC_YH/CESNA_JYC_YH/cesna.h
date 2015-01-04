@@ -109,6 +109,8 @@ public:
 
 	void  GradientForWK(vector<float>& GradV, const int K) {
 		//GradV.Gen(NumComs + 1);
+		GradV.push_back(1);
+
 		for (int u = 0; u < F.size(); u++) {
 			//if (HOKIDSV[u].IsKey(K)) { continue; }
 			double Pred = PredictAttrK(F[nids[u]], W[K]);					//Q(u,k) get in
