@@ -33,7 +33,7 @@ int main(int argc, const char * argv[]) {
     std::vector<int> idv;
     char buffer[2000];
 	#ifdef __APPLE__
-		ifstream ifs("/Users/jin-yc10/Development/data_homework/Hw4/618506165_6_Project4/cora/cora.cites");
+		ifstream ifs("/Users/jin-yc10/Development/data_homework/Hw4/618506165_6_Project4/cora/cora.cites.txt");
 	#else
 		ifstream ifs("C:\\Users\\H\\Desktop\\123\\Project4\\cora\\cora.cites");
 	#endif    
@@ -99,7 +99,7 @@ int main(int argc, const char * argv[]) {
 
     unordered_map<int,vector<int>> X;
 #ifdef __APPLE__
-    ifstream ifattrs("/Users/jin-yc10/Development/data_homework/Hw4/618506165_6_Project4/cora/cora.content");
+    ifstream ifattrs("/Users/jin-yc10/Development/data_homework/Hw4/618506165_6_Project4/cora/cora.content.txt");
 #else
     ifstream ifattrs("C:\\Users\\H\\Desktop\\123\\Project4\\cora\\cora.content");
 #endif

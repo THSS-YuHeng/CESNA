@@ -42,6 +42,9 @@ void cesna::calculate(double StepAlpha, double StepBeta) {
     // init W
     for (int n = 0; n < nids.size(); n++) {
         F[nids[n]] = vector<float>(n_communities);
+        for( int c = 0; c < n_communities; c++) {
+            F[nids[n]][c] = 0.0;
+        }
     }
     for (int k = 0; k < n_attributes; k++) {
         W.push_back(vector<float>());
@@ -50,6 +53,7 @@ void cesna::calculate(double StepAlpha, double StepBeta) {
         }
         W[k].push_back(1.0); // c+1 element
     }
+    double PNoCom = 1.0 / (double) _g->graphNodeMapSize();
     // grad ascent
     SETUPSTAMP
     int iter = 0;
@@ -82,12 +86,13 @@ void cesna::calculate(double StepAlpha, double StepBeta) {
                 // 为什么要做这个修正，论文中没体现出来
                 // 会不会是什么特别的方法
                 // predV -> Puv? P3右半边上面的定义
-                predV[ni] = exp(-dot(F[uid], F[nid]));
+                predV[ni] = exp(-(log (1.0 / (1.0 - PNoCom))+dot(F[uid], F[nid])));
             }
             for (int c = 0; c < n_communities; c++) {
                 double val = 0.0;
                 for (int ni = 0; ni < deg; ni++) {
                     int nid = n->getNeighbors()[ni];
+//                    std::cout << nid << " ";
                     // NegWgt = 1.0?
                     val += predV[ni] * F[nid][c] / (1.0 - predV[ni]) + NegWgt * F[nid][c];
                 }
