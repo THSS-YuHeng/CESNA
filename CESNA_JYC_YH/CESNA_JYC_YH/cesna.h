@@ -15,12 +15,18 @@
 #include <random>
 #include <vector>
 #include <set>
-#include <hash_set>
+#include <algorithm>
+
 #ifdef __GNUC__
 #include <unordered_map>
+#include <unordered_set>
+#include <ext/hash_set>
 using namespace std;
+using namespace __gnu_cxx;
 #else
 #include <unordered_map>
+#include <unordered_set>
+#include <hash_set>
 using namespace std;
 #endif
 
@@ -63,13 +69,14 @@ public:
 	cesna(ugraph* g, unordered_map<int,vector<int>> X): _g(g), X(X),_mt(_rd()) {
 		for (ugraph::nodeI ni = g->getNodeItBegin(); ni != g->getNodeItEnd(); ni++) {
 			nids.push_back(ni->first);
-			F[ni->first] = vector<float>();
+			F[ni->first] = vector<float>(7);
 			//D({ std::cout << ni->first << std::endl; })
 			n_attributes = (int)X[ni->first].size();
 		}
 		D( {
 			std::cout << "GRAPH HAVE " << nids.size() << " NODES" << std::endl;
 		} )
+        NeighborComInit(7);
 	}
 
 	int estimateCommuNumber(); // estimate C number
@@ -235,53 +242,47 @@ public:
 	}
 
 	void inline AddCom(const int& NID, const int& CID, const double& Val) {
-		if (F[NID].IsKey(CID)) {
-			SumFV[CID] -= F[NID].GetDat(CID);
-		}
-		F[NID].AddDat(CID) = Val;
+        SumFV[CID] -= F[NID][CID];
+		F[NID][CID] = Val;
 		SumFV[CID] += Val;
 	}
 
-	void GetNbhCom(ugraph* Graph, int NID, _Hash& NBCmtyS) {
+	void GetNbhCom(ugraph* Graph, int NID, unordered_set<int>& NBCmtyS) {
 		ugraph::node* NI = Graph->getNode(NID);
-		NBCmtyS.Gen(NI.GetDeg());
-		NBCmtyS.AddKey(NID);
-		for (int e = 0; e < NI.GetDeg(); e++) {
-			NBCmtyS.AddKey(NI.GetNbrNId(e));
+		NBCmtyS.insert(NID);
+		for (int e = 0; e < NI->getDeg(); e++) {
+			NBCmtyS.insert(NI->getNeighbors()[e]);
 		}
 	}
 
-	double GetConductance(ugraph* Graph, hash_set<int>& CmtyS, int Edges) {
-		bool GraphType = HasGraphFlag(typename PGraph::TObj, gfDirected);
-		int Edges2;
-		if (GraphType) { Edges2 = Edges >= 0 ? Edges : Graph->GetEdges(); }
-		else { Edges2 = Edges >= 0 ? 2 * Edges : Graph->GetEdges(); }
-		int Vol = 0,  Cut = 0; 
+	double GetConductance(ugraph* Graph, unordered_set<int>& CmtyS, int Edges) {
+		int EdgesNum = Graph->graphEdgeMapSize();
+        int Vol = 0,  Cut = 0;
 		double Phi = 0.0;
-		for (int i = 0; i < CmtyS.Len(); i++) {
-			if (! Graph->IsNode(CmtyS[i])) { continue; }
-			typename PGraph::TObj::TNodeI  NI = Graph->GetNI(CmtyS[i]);
-			for (int e = 0; e < NI.GetOutDeg(); e++) {
-				if (! CmtyS.IsKey(NI.GetOutNId(e))) { Cut += 1; }
+        for (unordered_set<int>::iterator si = CmtyS.begin(); si != CmtyS.end(); si++) {
+			if (! Graph->isNode(*si)) { continue; }
+            ugraph::node* NI = Graph->getNode(*si);
+			for (int e = 0; e < NI->getDeg(); e++) {
+				if ( CmtyS.find(NI->getNeighbors()[e]) == CmtyS.end() ) { Cut += 1; }
 			}
-			Vol += NI.GetOutDeg();
+			Vol += NI->getDeg();
 		}
 		// get conductance
-		if (Vol != Edges2) {
-			if (2 * Vol > Edges2) { Phi = Cut / double (Edges2 - Vol); }
+		if (Vol != EdgesNum) {
+			if (2 * Vol > EdgesNum) { Phi = Cut / double (EdgesNum - Vol); }
 			else if (Vol == 0) { Phi = 0.0; }
 			else { Phi = Cut / double(Vol); }
 		} else {
-			if (Vol == Edges2) { Phi = 1.0; }
+			if (Vol == EdgesNum) { Phi = 1.0; }
 		}
 		return Phi;
 	}
 
 	void GetNIdPhiV(ugraph* G, vector<float>& NIdPhiV) {
-		NIdPhiV = vector<float>(G->graphNodeMapSize(), 0);
+		NIdPhiV = vector<float>();
 		int Edges = G->graphEdgeMapSize();
-		for (ugraph::nodeI NI = _g->getNodeItBegin(); NI!=_g->getNodeItEnd; NI++) {			
-			hash_set<int> NBCmty();
+		for (ugraph::nodeI NI = _g->getNodeItBegin(); NI!=_g->getNodeItEnd(); NI++) {
+			unordered_set<int> NBCmty;
 			double Phi;
 			if (NI->second.getDeg() < 5) { //do not include nodes with too few degree
 				Phi = 1.0; 
@@ -292,7 +293,7 @@ public:
 				Phi = GetConductance(G, NBCmty, Edges);
 			}
 			//NCPhiH.AddDat(u, Phi);
-			NIdPhiV.Add(TFltIntPr(Phi, NI->second.getId()));
+			NIdPhiV.push_back(Phi);
 		}
 	}
 
@@ -303,46 +304,45 @@ public:
 		NeighborComInit(NIdPhiV, InitComs);
 	}
 
-	void NeighborComInit(TFltIntPrV& NIdPhiV, int InitComs) {
+	void NeighborComInit(vector<float>& NIdPhiV, int InitComs) {
 		//initialize with best neighborhood communities (Gleich et.al. KDD'12)
-		NIdPhiV.Sort(true);
-		F.Gen(G->GetNodes());
-		SumFV.Gen(InitComs);
+        std::sort(NIdPhiV.begin(),NIdPhiV.end());
+		SumFV = vector<float>(InitComs);
 		n_communities = InitComs;
-		TIntSet InvalidNIDS(F.size());
-		vector<int> ChosenNIDV(InitComs, 0); //FOR DEBUG
+		unordered_set<int> InvalidNIDS;
+		unordered_set<int> ChosenNIDV; //FOR DEBUG
 		//choose nodes with local minimum in conductance
 		int CurCID = 0;
-		for (int ui = 0; ui < NIdPhiV.Len(); ui++) {
-			int UID = NIdPhiV[ui].Val2;
+		for (int ui = 0; ui < NIdPhiV.size(); ui++) {
+			int UID = nids[ui];
 			fflush(stdout);
-			if (InvalidNIDS.IsKey(UID)) { continue; }
-			ChosenNIDV.Add(UID); //FOR DEBUG
+			if (InvalidNIDS.find(UID) != InvalidNIDS.end() ) { continue; }
+			ChosenNIDV.insert(UID); //FOR DEBUG
 			//add the node and its neighbors to the current community
 			AddCom(UID, CurCID, 1.0);
-			ugraph::node NI = G->GetNI(UID);
+			ugraph::node* NI = _g->getNode(UID);
 			fflush(stdout);
-			for (int e = 0; e < NI.GetDeg(); e++) {
-				AddCom(NI.GetNbrNId(e), CurCID, 1.0);
+			for (int e = 0; e < NI->getDeg(); e++) {
+				AddCom(NI->getNeighbors()[e], CurCID, 1.0);
 			}
 			//exclude its neighbors from the next considerations
-			for (int e = 0; e < NI.GetDeg(); e++) {
-				InvalidNIDS.AddKey(NI.GetNbrNId(e));
+			for (int e = 0; e < NI->getDeg(); e++) {
+				InvalidNIDS.insert(NI->getNeighbors()[e]);
 			}
 			CurCID++;
 			fflush(stdout);
-			if (CurCID >= NumComs) { break;  }
+			if (CurCID >= n_communities) { break;  }
 		}
-		if (NumComs > CurCID) {
-			printf("%d communities needed to fill randomly\n", NumComs - CurCID);
+		if (n_communities > CurCID) {
+			printf("%d communities needed to fill randomly\n", n_communities - CurCID);
 		}
 		//assign a member to zero-member community (if any)
 		for (int c = 0; c < SumFV.size(); c++) {
 			if (SumFV[c] == 0.0) {
 				int ComSz = 10;
 				for (int u = 0; u < ComSz; u++) {
-					int UID = rand() % G->GetNodes();
-					AddCom(UID, c, (rand() % G->GetNodes()) / double(1));
+					int UID = _mt() % _g->graphNodeMapSize();
+					AddCom(UID, c, (_mt() % _g->graphNodeMapSize()) / double(1));
 				}
 			}
 		}
