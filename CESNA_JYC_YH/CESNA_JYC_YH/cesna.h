@@ -278,8 +278,8 @@ public:
 		return Phi;
 	}
 
-	void GetNIdPhiV(ugraph* G, vector<float>& NIdPhiV) {
-		NIdPhiV = vector<float>();
+	void GetNIdPhiV(ugraph* G, unordered_map<int, float>& NIdPhiV) {
+		NIdPhiV = unordered_map<int, float>();
 		int Edges = G->graphEdgeMapSize();
 		for (ugraph::nodeI NI = _g->getNodeItBegin(); NI!=_g->getNodeItEnd(); NI++) {
 			unordered_set<int> NBCmty;
@@ -288,40 +288,48 @@ public:
 				Phi = 1.0; 
 			} else {
 				GetNbhCom(G, NI->second.getId(), NBCmty);
-				//if (NBCmty.Len() != NI.GetDeg() + 1) { printf("NbCom:%d, Deg:%d\n", NBCmty.Len(), NI.GetDeg()); }
-				//IAssert(NBCmty.Len() == NI.GetDeg() + 1);
 				Phi = GetConductance(G, NBCmty, Edges);
 			}
 			//NCPhiH.AddDat(u, Phi);
-			NIdPhiV.push_back(Phi);
+			NIdPhiV[NI->first] = Phi;
 		}
 	}
 
 	void NeighborComInit(const int InitComs) {
 		//initialize with best neighborhood communities (Gleich et.al. KDD'12)
-		vector<float> NIdPhiV(F.size(), 0);
+		unordered_map<int, float> NIdPhiV;
 		GetNIdPhiV(_g, NIdPhiV);
 		NeighborComInit(NIdPhiV, InitComs);
 	}
 
-	void NeighborComInit(vector<float>& NIdPhiV, int InitComs) {
+	void NeighborComInit(unordered_map<int, float>& NIdPhiV, int InitComs) {
 		//initialize with best neighborhood communities (Gleich et.al. KDD'12)
-        std::sort(NIdPhiV.begin(),NIdPhiV.end());
+        //std::sort(NIdPhiV.begin(),NIdPhiV.end());
+        typedef pair<int, float> PAIR;
+        struct CmpByValue {
+            bool operator()(const PAIR& lhs, const PAIR& rhs) {
+                return lhs.second < rhs.second;
+            }
+        };
+        vector<PAIR> phiv(NIdPhiV.begin(), NIdPhiV.end());
+        sort(phiv.begin(), phiv.end(), CmpByValue());
 		SumFV = vector<float>(InitComs);
 		n_communities = InitComs;
 		unordered_set<int> InvalidNIDS;
 		unordered_set<int> ChosenNIDV; //FOR DEBUG
 		//choose nodes with local minimum in conductance
 		int CurCID = 0;
-		for (int ui = 0; ui < NIdPhiV.size(); ui++) {
-			int UID = nids[ui];
-			fflush(stdout);
+		for (int ui = 0; ui < phiv.size(); ui++) {
+			int UID = phiv[ui].first;
+            float phi = phiv[ui].second;
+            cout << UID << "\t" << phi << endl;
+//			fflush(stdout);
 			if (InvalidNIDS.find(UID) != InvalidNIDS.end() ) { continue; }
 			ChosenNIDV.insert(UID); //FOR DEBUG
 			//add the node and its neighbors to the current community
 			AddCom(UID, CurCID, 1.0);
 			ugraph::node* NI = _g->getNode(UID);
-			fflush(stdout);
+//			fflush(stdout);
 			for (int e = 0; e < NI->getDeg(); e++) {
 				AddCom(NI->getNeighbors()[e], CurCID, 1.0);
 			}
@@ -330,7 +338,7 @@ public:
 				InvalidNIDS.insert(NI->getNeighbors()[e]);
 			}
 			CurCID++;
-			fflush(stdout);
+//			fflush(stdout);
 			if (CurCID >= n_communities) { break;  }
 		}
 		if (n_communities > CurCID) {

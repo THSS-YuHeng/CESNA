@@ -32,7 +32,7 @@ void cesna::calculate(double StepAlpha, double StepBeta) {
     // 从而将非凸的优化问题转化为凸优化
     // --------------------------------------------------------
     // estimate
-	n_communities = 7;
+    n_communities = 7;
     if ( n_communities == -1 ) {
         n_communities = estimateCommuNumber();
     }
@@ -53,38 +53,64 @@ void cesna::calculate(double StepAlpha, double StepBeta) {
         shuffleU.push_back(nids[i]);
     }
     while (iter < maxiter) {
+        for (int i = 0; i < n_communities; i++)
+        {
+            std::cout << "Comunity " << i << ": ";
+            int counti = 0;
+            for (int j = 0; j < _g->graphNodeMapSize(); j++)
+            {
+                if (counti == 10)
+                {
+                    //break;
+                }
+                if ( F[nids[j]][i] > 0 )
+                {
+                    std::cout << "[" << nids[j] << "-" << F[nids[j]][i] << "]" ;
+                    counti++;
+                }
+            }
+            std::cout << std::endl;
+        }
+        
         std::shuffle(shuffleU.begin(), shuffleU.end(), _mt);
         // for every node u
         // Updating community memberships. P4,EQ(5),EQ(6)
         for (int i = 0; i < shuffleU.size(); i++) {
             int uid = shuffleU[i];
-//            D({std::cout << "iter " << iter << " node " << i << " id " << uid << std::endl;})
+            //            D({std::cout << "iter " << iter << " node " << i << " id " << uid << std::endl;})
             // part1 dlg/dfu =
             //          sigma[v in Nei(u)]( Fvc * ( exp(-FuFv)) / ( 1 - exp(-FuFv)) )
             //         -sigma[v not in Nei(u)]( FuFv )
             // grad for node u
             ugraph::node* n = _g->getNode(uid);
             int deg = n->getDeg();
+//            std::cout << n->getId() << std::endl;
             vector<float> gradV(n_communities);
             vector<float> gradU(n_communities);
             vector<float> predV(deg); // exp(-FuFv)
             float val = 0.0;
             // 求gradv
             for (int ni = 0; ni < deg; ni++) {
-                int nid = n->getNeighbors()[ni];
-                predV[ni] = exp(-(log (1.0 / (1.0 - PNoCom))+dot(F[uid], F[nid])));
+                vector<int> neighbors = n->getNeighbors();
+                int nid = neighbors.at(ni);
+//                std::cout << dot(F[uid], F[nid]) << std::endl;
+                predV[ni] = exp(-dot(F[uid], F[nid]));//+exp(-(log (1.0 / (1.0 - PNoCom));
             }
             for (int c = 0; c < n_communities; c++) {
                 double val = 0.0;
                 for (int ni = 0; ni < deg; ni++) {
                     int nid = n->getNeighbors()[ni];
-                    val += predV[ni] * F[nid][c] / (1.0 - predV[ni]) + NegWgt * F[nid][c];
+                    if( predV[ni] == 1.0 ) {
+                        val += NegWgt * F[nid][c];
+                    } else {
+                        val += predV[ni] * F[nid][c] / (1.0 - predV[ni]) + NegWgt * F[nid][c];
+                    }
                 }
                 // 计算v not in Nei的部分
                 val -= NegWgt * (SumFV[c]
                                  -
                                  F[uid][c]);
-                gradV[c] = val;
+                gradV[c] = val*0.5;
             }
             // L1 L2 regularization
             // add attribute part
@@ -120,7 +146,7 @@ void cesna::calculate(double StepAlpha, double StepBeta) {
                     F[uid][ci] = 0.0;
                 } else {
                     F[uid][ci] = NewFuc;
-                    std::cout << NewFuc << std::endl;
+                    //std::cout << NewFuc << std::endl;
                 }
                 // update SumFV
                 SumFV[ci] -= oldFuc;
@@ -133,12 +159,12 @@ void cesna::calculate(double StepAlpha, double StepBeta) {
             // calc W
             // grad W
             // TODO GradientForWK
-			GradientForWK(gradWV, k);
+            GradientForWK(gradWV, k);
             // TODO Norm2 gradWV
-			if (Norm2(gradWV) < 1e-4) { continue; }
+            if (Norm2(gradWV) < 1e-4) { continue; }
             // step size
             double learnRate = 0.0; // TODO GetStepSizeByLineSearchForWK
-			learnRate = GetStepSizeByLineSearchForWK(k, gradWV, gradWV, StepAlpha, StepBeta);
+            learnRate = GetStepSizeByLineSearchForWK(k, gradWV, gradWV, StepAlpha, StepBeta);
             // 更新 Wkc
             if (learnRate == 0.0) { continue; }
             for (int c = 0; c < gradWV.size(); c++){
@@ -150,24 +176,6 @@ void cesna::calculate(double StepAlpha, double StepBeta) {
         std::cout << "iter: " << iter << " " << GETSTAMP << std::endl;
         iter++;
         double threshold = sqrt(0.0 - log(1.0 - 1.0 / n_communities));
-        for (int i = 0; i < n_communities; i++)
-        {
-            std::cout << "Comunity " << i << ": ";
-            int counti = 0;
-            for (int j = 0; j < _g->graphNodeMapSize(); j++)
-            {
-                if (counti == 10)
-                {
-                    break;
-                }
-                if ( F[nids[j]][i] > threshold )
-                {
-                    std::cout << "[" << nids[j] << "-" << F[nids[j]][i] << "]" ;
-                    counti++;
-                }
-            }
-            std::cout << std::endl;
-        }
     }
     
     // get com
@@ -176,31 +184,31 @@ void cesna::calculate(double StepAlpha, double StepBeta) {
     struct CmpByValue {
         bool operator()(const PAIR& lhs, const PAIR& rhs) {
             return lhs.second < rhs.second;
-        }  
+        }
     };
     
-	double threshold = sqrt(0.0 - log(1.0 - 1.0 / n_communities));
-	std::cout << "Comunity Number: " << n_communities << std::endl;
-	std::cout << "Comunity threshold: " << threshold << std::endl;
-	for (int i = 0; i < n_communities; i++)
-	{
-		std::cout << "Comunity " << i << ": ";
-		int counti = 0;
+    double threshold = sqrt(0.0 - log(1.0 - 1.0 / n_communities));
+    std::cout << "Comunity Number: " << n_communities << std::endl;
+    std::cout << "Comunity threshold: " << threshold << std::endl;
+    for (int i = 0; i < n_communities; i++)
+    {
+        std::cout << "Comunity " << i << ": ";
+        int counti = 0;
         map<int, float> i_f_map;
-		for (int j = 0; j < _g->graphNodeMapSize(); j++)
-		{
-			if ( F[nids[j]][i] > threshold )
-			{
+        for (int j = 0; j < _g->graphNodeMapSize(); j++)
+        {
+            if ( F[nids[j]][i] > threshold )
+            {
                 i_f_map[nids[j]] = F[nids[j]][i];
-//				std::cout << "[" << nids[j] << "-" << F[nids[j]][i] << "]" ;
-//				counti++;
-			}
-		}
+                //				std::cout << "[" << nids[j] << "-" << F[nids[j]][i] << "]" ;
+                //				counti++;
+            }
+        }
         vector<PAIR> i_f_v(i_f_map.begin(), i_f_map.end());
         sort(i_f_v.begin(), i_f_v.end(), CmpByValue());
-        for (int i = 0; i < 20; ++i) {
+        for (int i = 0; i < i_f_v.size(); ++i) {
             std::cout << "[" << i_f_v[i].first << " " << i_f_v[i].second << "]";
         }
         std::cout << std::endl;
-	}
+    }
 }
